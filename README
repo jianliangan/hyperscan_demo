@@ -1,0 +1,39 @@
+
+使用时需要引入pcapscan_core.cpp，另外链接库要有libhs.a ，头文件要有 -I/disk2/hyperscan/hyperscan-5.4.0/src/ 支持-std=c++11 
+
+pcapscan.cc 这个文件是demo，
+#1、先创建类对象
+HyperScanName::NewHyperScan newHyperScan;
+#2、设置日志级别；
+#     日志信息不会输出会保存到一个string里,以后可以加最大长度限制，现在不需要。
+     newHyperScan.hyperSetLogLevel(g_nlog_level);
+#3、编译；
+#       参数patVector内容格式参考pattern_hy_ajl.txt 文件内容，相当于把每一行都插入到vector
+#       参数patVectorEx,是patVector的扩展内容，他是个map,结构体说明见源码,它主要保存扩展断言信息，key就是patVector里边每行断言开头的那个id值，这样保证patVector和patVector通过id对应关系。
+         
+        newHyperScan.hyperCompile(patVector, patVectorEx);
+        if(g_nlog_level>=1)
+#3、拿到日志信息，编译过程可能产生日志，比如错误日志或其他日志，可以这样拿取。
+              cout<<newHyperScan.hyperGetMessage();
+#4、扫描：
+      参数pFileContent为要扫描的内容
+int err=newHyperScan.hyperScan(pFileContent,nFileSize);
+
+#5、读取扫描结果，结构体看源码
+                                         HyperScanName::ResultVet::iterator resit;
+                                        for(resit= newHyperScan.resultVet.begin();resit!=newHyperScan.resultVet.end();resit++){
+                                                vector<HyperScanName::position_s>& mattmp=resit->second.matches;
+                                                cout<<"ids:"<<resit->first<<endl;
+                                                for(int i=0;i<mattmp.size();i++){
+                                                        cout<<"   from:"<<mattmp[i].from<<" to:"<<mattmp[i].to<<endl;
+                                                }
+                                        }
+
+
+jsoncpp是demo自己用的，引用的话只需要引入pcapscan_core.cpp /disk2/hyperscan/hs_build/lib/libhs.a -I/disk2/hyperscan/hyperscan-5.4.0/src/ -std=c++11 就行。
+demo编译：
+g++ pcapscan.cc pcapscan_core.cpp jsoncpp/jsoncpp.cpp /disk2/hyperscan/hs_build/lib/libhs.a -I/disk2/hyperscan/hyperscan-5.4.0/src/ -std=c++11
+可引用部分
+g++ -c pcapscan_core.cpp  /disk2/hyperscan/hs_build/lib/libhs.a -I/disk2/hyperscan/hyperscan-5.4.0/src/ -std=c++11
+运行：
+./a.out  -v 2 -n 1 /disk2/hyperscan/hyperscan-5.4.0/examples/pattern_hy_ajl.txt    /disk2/hyperscan/hyperscan-5.4.0/examples/data/  /disk2/hyperscan/hyperscan-5.4.0/examples/new_config.json
